@@ -258,6 +258,8 @@ class FullyConnectedNet(object):
         cache = {}
         for i in range(self.num_layers - 1):
             r, cache['affine' + str(i + 1)] =affine_forward(r, self.params['W' + str(i + 1)], self.params['b' + str(i + 1)])
+            if self.use_batchnorm and i != self.num_layers - 2:
+                r, cache['bach' + str(i + 1)] = batchnorm_forward(r, np.array([1] * r.shape[1]), np.array([0] * r.shape[1]), {"mode" : "train"})
             r, cache['relu' + str(i + 1)] = relu_forward(r)
         scores, cache['affine' + str(self.num_layers)] = affine_forward(r, self.params['W' + str(self.num_layers)], self.params['b' + str(self.num_layers)])
         ############################################################################
@@ -298,6 +300,8 @@ class FullyConnectedNet(object):
         grads['W' + str(self.num_layers)] += 2 / self.num_layers * self.reg * self.params['W' + str(self.num_layers)]
         for i in range(1, self.num_layers):
             dout = relu_backward(dout, cache['relu' + str(self.num_layers - i)])
+            if self.use_batchnorm and i != 1:
+                dout, _, _ = batchnorm_backward(dout, cache['bach' + str(self.num_layers - i)])
             dout, grads['W' + str(self.num_layers - i)], grads['b' + str(self.num_layers - i)] = affine_backward(dout, cache['affine' + str(self.num_layers - i)])
             grads['W' + str(self.num_layers - i)] += 2 / self.num_layers * self.reg * self.params['W' + str(self.num_layers - i)]
 
