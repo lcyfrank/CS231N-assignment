@@ -497,7 +497,22 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # TODO: Implement the max pooling forward pass                            #
     ###########################################################################
-    pass
+    N, C, H, W = x.shape
+
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+
+    H_out = (H - pool_height) // stride + 1
+    W_out = (W - pool_width) // stride + 1
+
+
+
+    out = np.zeros((N, C, H_out, W_out))
+    for i in range(0, H - pool_height + 1, stride):
+        for j in range(0, W - pool_width + 1, stride):
+            temp_max = x[:, :, i : i + pool_height, j : j + pool_width].max((2, 3))
+            out[:, :, i // stride, j // stride] = temp_max
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -520,7 +535,24 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the max pooling backward pass                           #
     ###########################################################################
-    pass
+    x, pool_param = cache
+    N, C, H, W = x.shape
+
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+
+    # dout : N, C, H_out, W_out
+    dx = np.zeros_like(x)  # N, C, H, W
+    for i in range(0, H - pool_height + 1, stride):
+        for j in range(0, W - pool_width + 1, stride):
+            temp_out = dout[:, :, i // stride, j // stride]  # N, C, 1, 1
+            temp_x = x[:, :, i : i + pool_height, j : j + pool_width]
+            temp_max = temp_x.max((2, 3))
+
+            temp_dx = temp_x == temp_max.reshape(N, C, 1, 1)  # N, C, pool_height, pool_width
+            temp_dx = temp_dx * temp_out.reshape(N, C, 1, 1)
+            dx[:, :, i : i + pool_height, j : j + pool_width] = temp_dx
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
