@@ -441,7 +441,37 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+    x, w, b, conv_param = cache
+
+    N, F, H_out, W_out = dout.shape
+    _, C, HH, WW = w.shape
+    _, _, H, W = x.shape
+
+    stride = conv_param.get('stride', 1)
+    pad = conv_param.get('pad', 0)
+
+    input_x = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
+
+    #  dout : N, F, H, W
+    db = [dout[:, i, :, :].sum() for i in range(F)]  # (F, )
+    dw = np.zeros((F, C, HH, WW))  # F, C, HH, WW
+    dx = np.zeros((N, C, H + 2 * pad, W + 2 * pad))  # N, C, H + 2 * pad, W + 2 * pad
+
+    for f in range(F):
+        each_dw = np.zeros((C, HH, WW))  # C, HH, WW
+        for i in range(0, H + 2 * pad - HH + 1, stride):
+            for j in range(0, W + 2 * pad - WW + 1, stride):
+                temp_out = dout[:, f, i // stride, j // stride]  # a number  (N, )
+                
+                temp_w = w[f, :, :, :]  # C, HH, WW
+                temp_x = input_x[:, :, i : i + HH, j : j + WW]  # N, C, HH, WW
+                each_dw += (temp_out.reshape(1, N).dot(temp_x.reshape(N, -1))).reshape(C, HH, WW)
+
+                dx[:, :, i : i + HH, j : j + WW] += (temp_out.reshape(N, 1).dot(temp_w.reshape(1, -1))).reshape(N, C, HH, WW)
+
+        dw[f, :, :, :] = each_dw
+
+    dx = dx[:, :, pad : H + pad, pad : W + pad]  # sub pad
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
