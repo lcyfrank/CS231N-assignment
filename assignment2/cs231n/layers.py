@@ -453,7 +453,7 @@ def conv_backward_naive(dout, cache):
     input_x = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant')
 
     #  dout : N, F, H, W
-    db = [dout[:, i, :, :].sum() for i in range(F)]  # (F, )
+    db = np.array([dout[:, i, :, :].sum() for i in range(F)])  # (F, )
     dw = np.zeros((F, C, HH, WW))  # F, C, HH, WW
     dx = np.zeros((N, C, H + 2 * pad, W + 2 * pad))  # N, C, H + 2 * pad, W + 2 * pad
 
@@ -590,11 +590,15 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     # version of batch normalization defined above. Your implementation should#
     # be very short; ours is less than five lines.                            #
     ###########################################################################
-    pass
+    N, C, H, W = x.shape
+    temp_x = x.transpose(0, 2, 3, 1)
+    temp_x = temp_x.reshape(-1, C)
+    out, cache = batchnorm_forward(temp_x, gamma, beta, bn_param)
+    out = out.reshape(N, H, W, C)
+    out = out.transpose(0, 3, 1, 2)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-
     return out, cache
 
 
@@ -620,7 +624,12 @@ def spatial_batchnorm_backward(dout, cache):
     # version of batch normalization defined above. Your implementation should#
     # be very short; ours is less than five lines.                            #
     ###########################################################################
-    pass
+    N, C, H, W = dout.shape
+    temp_out = dout.transpose(0, 2, 3, 1)
+    temp_out = temp_out.reshape(-1, C)
+    dx, dgamma, dbeta = batchnorm_backward(temp_out, cache)
+    dx = dx.reshape(N, H, W, C)
+    dx = dx.transpose(0, 3, 1, 2)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -674,7 +683,7 @@ def softmax_loss(x, y):
     log_probs = shifted_logits - np.log(Z)
     probs = np.exp(log_probs)
     N = x.shape[0]
-    loss = -np.sum(log_probs[np.arange(N), y]) / N
+    loss = -1 * np.sum(log_probs[np.arange(N), y]) / N
     dx = probs.copy()
     dx[np.arange(N), y] -= 1
     dx /= N
